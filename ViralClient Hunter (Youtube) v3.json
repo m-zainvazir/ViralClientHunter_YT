@@ -1,0 +1,1461 @@
+{
+  "name": "ViralClient Hunter (Youtube) v3",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        64
+      ],
+      "id": "a7141e1d-0d1e-42d0-a111-9ccce625404e",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1249186157,
+          "mode": "list",
+          "cachedResultName": "Target_List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=1249186157"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        208,
+        64
+      ],
+      "id": "b19cf60e-7fb1-4a39-88fb-0bdd6f06a854",
+      "name": "Read Target_List",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk",
+          "__regex": "https:\\/\\/(?:drive|docs)\\.google\\.com(?:\\/.*|)\\/d\\/([0-9a-zA-Z\\-_]+)(?:\\/.*|)"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2090281338,
+          "mode": "list",
+          "cachedResultName": "Prompt_Packs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=2090281338"
+        },
+        "options": {
+          "dataLocationOnSheet": {
+            "values": {
+              "rangeDefinition": "specifyRange",
+              "firstDataRow": 1
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -64,
+        64
+      ],
+      "id": "1f8bd221-5492-4413-9fc9-e3bfac1f55c3",
+      "name": "Read Prompt_Packs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n// 1. Get all input items and the items from the previous node\nconst inputs = $input.all();\nconst appendNodeItems = $('Append direct emails in sheet').all();\n\n// 2. Use a standard loop with index 'i' so we can match the rows\nfor (let i = 0; i < inputs.length; i++) {\n  const item = inputs[i];\n  const list = item.json.items || [];\n\n  // 3. Grab the specific Name for this row using the index [i]\n  const correctName = appendNodeItems[i]?.json.Name || \"Unknown\";\n\n  if (!list.length) {\n    // No channel data – still output one placeholder row\n    out.push({\n      json: {\n        channelId: \"Empty\",\n        channelTitle: \"Empty\",\n        channelDescription: \"Empty\",\n        subscriberCount: 0,\n        viewCount: 0,\n        videoCount: 0,\n      },\n    });\n    continue;\n  }\n\n  // Normal case: at least one channel\n  for (const ch of list) {\n    out.push({\n      json: {\n        channelId: ch.id || \"Empty\",\n        \n        // FIX: Use the variable we fetched using the index\n        channelTitle: correctName,\n        \n        channelDescription: ch.snippet?.description || \"Empty\",\n        subscriberCount: ch.statistics?.subscriberCount || 0,\n        viewCount: ch.statistics?.viewCount || 0,\n        videoCount: ch.statistics?.videoCount || 0,\n      },\n    });\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        320
+      ],
+      "id": "93dcfb18-d0b9-412b-8d72-41c34366eada",
+      "name": "Extract ID Title Description"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        752,
+        880
+      ],
+      "id": "8d4e4bad-a791-4d5c-94e1-5855e10d91cf",
+      "name": "Groq Chat Model2",
+      "credentials": {
+        "groqApi": {
+          "id": "StY72JHDXcd24CUE",
+          "name": "Groq account freekatb"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=```\n\nYou are a Senior YouTube Growth Strategist who specializes in scaling channels by fixing production bottlenecks. Generate a high-stakes, hyper-personalized cold email for a creator using the exact channel data provided.\n\n\n\nChannel Details:\n\n- Name: {{ $('Extract ID Title Description').item.json.channelTitle }}\n\n- Content Style: {{ $('Return Content-Style, Pain-Signal').item.json.contentStyle }}\n\n- Channel Summary: {{ $('Return Content-Style, Pain-Signal').item.json.channelSummary }}\n\n- Main Problem / Pain Signal: {{ $('Return Content-Style, Pain-Signal').item.json.painSignal }}\n\n- Subscriber Count: {{ $('Extract ID Title Description').item.json.subscriberCount }}\n\n- View Count: {{ $('Extract ID Title Description').item.json.viewCount }}\n\n- Video Count: {{ $('Extract ID Title Description').item.json.videoCount }}\n\nEmail Writing Instructions:\n\nWrite ONE concise cold email (max 3–4 sentences) that:\n\n\n\n1. Demonstrates relevance by referencing hyper-niche content style, audience type, or a specific sub-niche channel issue.\n\n2. Identifies the primary growth bottleneck limiting the channel’s upside (CTR, retention, packaging, consistency, scalability, or monetization).\n\n3. Proposes ONE focused service only (choose exactly one: video editing OR thumbnails OR content optimization) as the solution.\n\n4. Ties the solution to realistic, conservative business impact (e.g., +20–40% CTR, 1.5–3× faster subscriber growth, increased monetization or sponsor appeal). Do not invent metrics; use only provided data.\n\n5. Uses creator-native language and removes marketing fluff, keeping it direct, metric-aware, friendly, and confident.\n\n6. Ends with a low-friction, clear CTA (reply “yes”, quick audit, short call, or portfolio review).\n\n7. Enforce hyper-personalization: ensure at least one niche-level audience or content cue is referenced; fallback to content-style + pain-signal if data is sparse.\n\n8. Self-check internally: one bottleneck, one service, one CTA; max 4 sentences; raw text only; automation-safe formatting; maximizes reply likelihood.\n\n9. Validation of claims: all metrics or growth mentions must tie directly to the chosen bottleneck and provided data.\n\n10. Output rules: raw email text only, no subject line, JSON, symbols, or extra formatting.\n\n```",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        752,
+        720
+      ],
+      "id": "c146afdc-fb2f-46fa-91bf-46bfe0d17a92",
+      "name": "Email Writer"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop through all incoming items\nreturn items.map(item => {\ntry {\n// 1. Get the text output from the AI Agent\n// (Adjust 'output' if your AI node calls the field 'text' or something else)\nconst aiResponse = item.json.output;\n\n// 2. Clean up common AI mistakes (like markdown ```json ... ``` blocks)\nconst cleanJson = aiResponse.replace(/```json|```/g, '').trim();\n\n// 3. Parse the text into a real Object\nconst parsedData = JSON.parse(cleanJson);\n\n// 4. Return the new clean fields merged with the original data\nreturn {\njson: {\n...item.json, // Keep original data (channel ID, subs, etc.)\n...parsedData // Add contentStyle, channelSummary, painSignal\n}\n};\n} catch (error) {\n// If AI gave bad data, just return the original item with an error note\nreturn {\njson: {\n...item.json,\nerror: \"Could not parse AI response\"\n}\n};\n}\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        544,
+        720
+      ],
+      "id": "684b40ee-62f3-4936-b961-4c1291b7c0b0",
+      "name": "Return Content-Style, Pain-Signal"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "561d431c-1e6b-4b0a-8cd9-ee5d600b40ed",
+              "name": "email",
+              "value": "={{ $('Create information for PropmtPacks').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "14ca8f06-f9b6-443e-bc37-73e08fea48a4",
+              "name": "=Intro_Text ",
+              "value": "Dear Sir/Madam,  Hope you are doing well.",
+              "type": "string"
+            },
+            {
+              "id": "a496c9b7-536c-4c47-8547-67ca5b708206",
+              "name": "Subject",
+              "value": "={{ 'Boost ' + $('Extract ID Title Description').item.json.channelTitle + '\\'s Growth' }}",
+              "type": "string"
+            },
+            {
+              "id": "30b9b361-d3fb-48a9-8076-bb035e350453",
+              "name": "Outro_Text",
+              "value": "={{ \"I’d love to walk you through how this would work—you can book a brief slot directly here:\\n\" + $('Read Target_List').first().json['Calendly Link'] }}",
+              "type": "string"
+            },
+            {
+              "id": "fb8f0de2-0485-44a5-858f-406e086b1b9b",
+              "name": "Signature",
+              "value": "={{ $('Read Target_List').item.json['Email Sign'] }}",
+              "type": "string"
+            },
+            {
+              "id": "4c529edb-1e96-42e2-a668-d97740823050",
+              "name": "Calendly Link",
+              "value": "={{ $('Read Target_List').first().json['Calendly Link'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        720
+      ],
+      "id": "05646719-7d37-4515-99e2-5071912c9b61",
+      "name": "Intro Subject Outro"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst emailBodies = $('Email Writer').all();\n\nreturn items.map((item, index) => {\n  const subject = item.json.Subject || item.json.email_subject || \"\";\n  \n  // Dynamic Intro\n  const intro = item.json.Intro_Text || \"Dear Creator,\";\n\n  // Get the email body from the fake node\n  const bodySource = emailBodies[index]?.json || {};\n  const body = bodySource.generated_email || bodySource.output || \"\";\n  \n  const outro = item.json.Outro_Text || \"\";\n  \n  // No signature included\n  const fullPrompt = `${intro}\\n\\n${body}\\n\\n${outro}`;\n\n  return {\n    json: {\n      ...item.json,\n      Full_Prompts: fullPrompt,\n    },\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        720
+      ],
+      "id": "e5dde58c-c1d5-48d5-8bd3-018372333914",
+      "name": "Compile Intro Outro"
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet"
+            },
+            {
+              "name": "q",
+              "value": "=\n{{ $json.Lead_Industry }}"
+            },
+            {
+              "name": "type",
+              "value": "video"
+            },
+            {
+              "name": "maxResults",
+              "value": "49"
+            },
+            {
+              "name": "fields",
+              "value": "items(snippet(title,channelTitle,channelId,description))"
+            },
+            {
+              "name": "order",
+              "value": "date"
+            },
+            {
+              "name": "publishedAfter",
+              "value": "={{ new Date(Date.now() - 30*24*60*60*1000).toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1056,
+        64
+      ],
+      "id": "5b578868-6542-4602-aebc-3ec788762bbc",
+      "name": "Eyes Scraper",
+      "executeOnce": true,
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "1Ksw0XjMUGH2sqe5",
+          "name": "m.zainvazir Project01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/channels",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet"
+            },
+            {
+              "name": "id",
+              "value": "={{ $json[\"channelId\"] }}"
+            },
+            {
+              "name": "fields",
+              "value": "items(snippet(title,description))"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1440,
+        64
+      ],
+      "id": "172de7bf-3b2d-4f7a-8f91-8eca514e1b9d",
+      "name": "Get Full Details",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "1Ksw0XjMUGH2sqe5",
+          "name": "m.zainvazir Project01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, index) => {\n  item.json.rowIndex = index + 1;\n  return item;\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        848,
+        64
+      ],
+      "id": "a7843c1c-227c-49bd-8ad5-365af08c08f4",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\n// We use .entries() to get the index 'i' so we can match the data back to the previous node\nfor (const [i, item] of $input.all().entries()) {\n  \n  // 1. Retrieve Lead_Industry from the \"Code in JavaScript3\" node \n  // We use the index 'i' to ensure we grab the industry for the correct Lead\n  const leadIndustry = $('Code in JavaScript3').all()[i]?.json?.Lead_Industry;\n\n  const items = item.json.items || [];\n  \n  for (const ch of items) {\n    out.push({\n      json: {\n        channelId: ch.snippet.channelId,\n        channelTitle: ch.snippet.channelTitle,\n        description: ch.snippet.description,\n        \n        // 2. Create the Channel URL\n        channelUrl: `https://www.youtube.com/channel/${ch.snippet.channelId}`,\n        \n        // Forward the Industry\n        Lead_Industry: leadIndustry\n      }\n    });\n  }\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        64
+      ],
+      "id": "b6900cf7-6b47-4c1c-af90-aac6ea037037",
+      "name": "Extract ChannelId, Title, Description"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "16972a74-6a9b-44cd-b48c-48f1ff05acef",
+              "name": "Lead_Name ",
+              "value": "={{$json[\"Name\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "3368cf30-11b5-4e07-898b-36514f46c998",
+              "name": "Lead_Email",
+              "value": "={{$json[\"Email\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "9d635c95-520f-48af-89ac-788cb03fbbb7",
+              "name": "Lead_Source",
+              "value": "={{$json[\"Channel_URL\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "d0402e2d-1458-46c0-a047-3232e38685f8",
+              "name": "Lead_Industry",
+              "value": "={{$json[\"Industry\"]}}",
+              "type": "string"
+            },
+            {
+              "id": "7d377309-be77-4780-ad1a-7afaba8dc142",
+              "name": "Lead_Status",
+              "value": "={{$json[\"Status\"] || \"Pending\"}}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        656,
+        64
+      ],
+      "id": "cc59dc58-3fc3-44df-b7c0-e7fda17da0da",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "051ffd3e-15b9-4d80-aa9c-456855d4edc6",
+              "leftValue": "={{ $json.emails }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        544,
+        352
+      ],
+      "id": "4a500fea-cd37-4573-a53f-e4fcb38c07ef",
+      "name": "If email exists"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y",
+          "mode": "list",
+          "cachedResultName": "Control_Panel",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1249186157,
+          "mode": "list",
+          "cachedResultName": "Target_List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=1249186157"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead_ID": "={{ $json.Lead_ID }}",
+            "Name": "={{ $json.Name }}",
+            "Email": "={{ $json.emails }}",
+            "Channel_URL": "={{ $json.Channel_URL }}",
+            "Industry": "={{ $('Extract ChannelId, Title, Description').item.json.Lead_Industry }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Lead_ID",
+              "displayName": "Lead_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Calendly Link",
+              "displayName": "Calendly Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Sign",
+              "displayName": "Email Sign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Channel_URL",
+              "displayName": "Channel_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "...",
+              "displayName": "...",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1088,
+        320
+      ],
+      "id": "b0a55292-929e-4ba8-818c-92ef5ca5f81e",
+      "name": "Append direct emails in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\nconst SOCIAL_DOMAINS = [\n  'facebook.com', 'instagram.com', 'linkedin.com', 'twitter.com', 'x.com',\n  't.me', 'telegram.me', 'youtube.com', 'vk.com', 'behance.net',\n  'dribbble.com', 'github.com', 'gumroad.com', 'pinterest.com', 'tiktok.com'\n];\n\nconst EMAIL_PROVIDERS = [\n  'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'icloud.com', 'aol.com'\n];\n\nfunction getDomain(url) {\n  try {\n    return url\n      .replace(/^https?:\\/\\//i, '')\n      .replace(/^www\\./i, '')\n      .split('/')[0]\n      .toLowerCase();\n  } catch {\n    return '';\n  }\n}\n\nfunction normalizeUrl(url) {\n  let clean = url.trim().replace(/[.,;)]+$/, '');\n  if (!/^https?:\\/\\//i.test(clean)) {\n    return 'https://' + clean;\n  }\n  return clean;\n}\n\n// ---- NEW LEAD ID LOGIC ----\nconst existingRows = $('Read Target_List').all();\n\nconst maxId = existingRows.reduce((max, row) => {\n  const leadId = row.json.Lead_ID || row.json.LeadID || '';\n  const num = parseInt(leadId.replace(/\\D/g, ''), 10) || 0;\n  return num > max ? num : max;\n}, 0);\n\nlet counter = maxId + 1;\n\n// IMPORTANT: use entries() to get index\nfor (const [index, item] of $input.all().entries()) {\n\n  const snippet = item.json?.items?.[0]?.snippet || {};\n  const desc = snippet.description || item.json.description || '';\n\n  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}/g;\n  const websiteRegex = /\\b((https?:\\/\\/)?(www\\.)?[a-zA-Z0-9-]+\\.[a-zA-Z]{2,}(\\/[^\\s]*)?)\\b/g;\n\n  const foundEmails = desc.match(emailRegex) || [];\n  const foundWebsites = desc.match(websiteRegex) || [];\n\n  const social = [];\n  const validSites = [];\n\n  for (const site of foundWebsites) {\n    const domain = getDomain(site);\n\n    if (!domain || EMAIL_PROVIDERS.some(p => domain.includes(p))) continue;\n\n    if (SOCIAL_DOMAINS.some(d => domain.includes(d))) {\n      social.push(site);\n    } else if (!site.match(/\\.(png|jpg|jpeg|gif|pdf)$/i)) {\n      validSites.push(site);\n    }\n  }\n\n  // ---- OUTPUT FIELDS ----\n  item.json.emails = [...new Set(foundEmails)].join(', ');\n  item.json.socialMedia = [...new Set(social)].join(', ');\n  item.json.website = validSites.length ? normalizeUrl(validSites[0]) : '';\n\n  // ---- SHEETS PREP (UPDATED PADDING) ----\n  // Changed 3 to 4 to get L0050 format\n  item.json.Lead_ID = `L${String(counter).padStart(4, '0')}`;\n  counter++;\n\n  item.json.Status = 'Pending';\n  item.json.Name = snippet.title || item.json.channelTitle || item.json.title || 'Unknown Name';\n\n  // ---- FIXED CHANNEL URL (INDEXED) ----\n  const prevNodeItem = $('Extract ChannelId, Title, Description').all()[index]?.json;\n\n  if (prevNodeItem?.channelUrl) {\n    item.json.Channel_URL = prevNodeItem.channelUrl;\n  } else if (prevNodeItem?.channelId) {\n    item.json.Channel_URL = `https://www.youtube.com/channel/${prevNodeItem.channelId}`;\n  } else {\n    item.json.Channel_URL = '';\n  }\n\n  out.push(item);\n}\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1648,
+        64
+      ],
+      "id": "df0442d5-4665-4816-b446-c2ab78db1330",
+      "name": "Extract Email,Site, Social, LeadID"
+    },
+    {
+      "parameters": {
+        "jsCode": "// We don't need to fetch 'Read Target_List' because the input node already has the data\nreturn items.map((item) => ({\n  json: {\n    // DIRECTLY use the input item's data\n    Email: item.json.Email || null, \n    Lead_ID: item.json.Lead_ID || null,\n    \n    Intro_Text: \"Dear Sir/Madam, Hope you are doing well.\",\n    Full_Prompts: \"\", \n    Outro_Text: \"If this sounds useful, just reply to this email and we can explore a few ideas.\",\n    Signature: \"Best regards, Muhammad Zain Vazir\"\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1296,
+        320
+      ],
+      "id": "373477c7-ee00-4c2a-a40c-2a57c0f28d47",
+      "name": "Create information for PropmtPacks",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/youtube/v3/channels",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "youTubeOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "part",
+              "value": "snippet,statistics,contentDetails"
+            },
+            {
+              "name": "id",
+              "value": "={{ $node[\"Extract ChannelId, Title, Description\"].json.channelId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1536,
+        320
+      ],
+      "id": "9fd2c961-a71f-4770-bfa8-badf5a853822",
+      "name": "Get Channel Stats (Count etc)",
+      "credentials": {
+        "youTubeOAuth2Api": {
+          "id": "1Ksw0XjMUGH2sqe5",
+          "name": "m.zainvazir Project01"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "98ada62e-9926-41df-b3cf-d6e861b81374",
+              "leftValue": "={{ $('Read Target_List').all().length }}",
+              "rightValue": 30,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2192,
+        720
+      ],
+      "id": "beac2374-5058-4d1c-891f-0d55e581a7a0",
+      "name": "If - num items",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y",
+          "mode": "list",
+          "cachedResultName": "Control_Panel",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1249186157,
+          "mode": "list",
+          "cachedResultName": "Target_List",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=1249186157"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": "={{ ($('Read Target_List').all().filter(i => i.json[\"...\"] && i.json[\"...\"].toString().trim() !== '').pop()?.json.row_number || 1) + 1 }}\n",
+            "...": "."
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Lead_ID",
+              "displayName": "Lead_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Industry",
+              "displayName": "Industry",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Calendly Link",
+              "displayName": "Calendly Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Email Sign",
+              "displayName": "Email Sign",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Channel_URL",
+              "displayName": "Channel_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "...",
+              "displayName": "...",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1984,
+        720
+      ],
+      "id": "b8093216-e338-4883-84ed-152c61a3007b",
+      "name": "Update row in sheet1",
+      "retryOnFail": false,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get all rows from the previous node\nconst allRows = items;\n\n// 2. Find the index of the LAST row that has a value in the \"...\" column\nlet lastProcessedIndex = -1;\nfor (let i = allRows.length - 1; i >= 0; i--) {\n    // Use bracket notation for the column name \"...\"\n    const processVal = allRows[i].json[\"...\"];\n    \n    if (processVal && processVal.toString().trim() !== '') {\n        lastProcessedIndex = i;\n        break; // Found the last dot, stop searching\n    }\n}\n\n// 3. Determine where to start\n// If a dot was found, start AT that index (to redo it).\n// If no dot was found (lastProcessedIndex is -1), start at 0 (the beginning).\nconst startIndex = lastProcessedIndex === -1 ? 0 : lastProcessedIndex;\n\n// 4. Return that row AND all rows below it (The rest of the batch)\nreturn allRows.slice(startIndex);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        64
+      ],
+      "id": "6683bbb1-7bc5-479c-b5f0-5f8e9a6a69cc",
+      "name": "Target_List Rows Alligned"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y",
+          "mode": "list",
+          "cachedResultName": "Control_Panel",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2090281338,
+          "mode": "list",
+          "cachedResultName": "Prompt_Packs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=2090281338"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "row_number": 0,
+            "Email": "{{ $('Read Target List Again1').item.json.Email }}",
+            "Full_Prompts": "{{ $json.Full_Prompts }}"
+          },
+          "matchingColumns": [
+            "row_number"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Intro_Text",
+              "displayName": "Intro_Text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Full_Prompts",
+              "displayName": "Full_Prompts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Outro_Text",
+              "displayName": "Outro_Text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Signature",
+              "displayName": "Signature",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row_number",
+              "displayName": "row_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true,
+              "readOnly": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        720
+      ],
+      "id": "c242b726-5762-492e-b2f0-e8599fc50f32",
+      "name": "Update rows in Prompt_Packs",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y",
+          "mode": "list",
+          "cachedResultName": "Control_Panel",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2090281338,
+          "mode": "list",
+          "cachedResultName": "Prompt_Packs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=2090281338"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ $('Create information for PropmtPacks').item.json.Email }}",
+            "Full_Prompts": "={{ $json.Full_Prompts }}",
+            "Subject": "={{ $json.Subject }}"
+          },
+          "matchingColumns": [
+            "Email"
+          ],
+          "schema": [
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Subject",
+              "displayName": "Subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Full_Prompts",
+              "displayName": "Full_Prompts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1728,
+        720
+      ],
+      "id": "af382b69-a4ba-436b-b61a-3b0871f30694",
+      "name": "Update rows in Prompt_Packs1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "emails, website, Channel_URL",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        304,
+        352
+      ],
+      "id": "d6861cc2-eec3-43e6-a8fa-df60d7da1fa6",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process each input item\nconst items = $input.all();\n\nconst results = items.map(item => {\n  const channelTitle = item.json.channelTitle || '';\n  const channelDescription = item.json.channelDescription || '';\n  const subscriberCount = parseInt(item.json.subscriberCount) || 0;\n  const viewCount = parseInt(item.json.viewCount) || 0;\n  const videoCount = parseInt(item.json.videoCount) || 1;\n\n  // Combine text for keyword analysis\n  const combinedText = (channelTitle + ' ' + channelDescription).toLowerCase();\n\n  // Define content categories and their keywords\n  const contentCategories = [\n    {\n      name: \"Educational tutorials and how-to guides\",\n      keywords: ['tutorial', 'how to', 'guide', 'explain', 'learn', 'education', 'lesson']\n    },\n    {\n      name: \"Gaming and gameplay content\",\n      keywords: ['gaming', 'gameplay', 'walkthrough', 'esports', 'stream', 'gamer']\n    },\n    {\n      name: \"Vlogs and lifestyle content\",\n      keywords: ['vlog', 'lifestyle', 'daily', 'personal', 'day in life', 'story']\n    },\n    {\n      name: \"Product reviews and tech content\",\n      keywords: ['review', 'unboxing', 'product', 'tech', 'gadget', 'android', 'iphone']\n    },\n    {\n      name: \"Fitness and health content\",\n      keywords: ['fitness', 'workout', 'health', 'gym', 'exercise', 'nutrition']\n    },\n    {\n      name: \"Cooking and food content\",\n      keywords: ['cooking', 'recipe', 'food', 'meal', 'baking', 'kitchen']\n    },\n    {\n      name: \"Travel and adventure content\",\n      keywords: ['travel', 'adventure', 'explore', 'destination', 'trip']\n    },\n    {\n      name: \"Entertainment and comedy\",\n      keywords: ['comedy', 'funny', 'entertainment', 'skit', 'prank']\n    }\n  ];\n\n  // Find content style based on keywords\n  let contentStyle = \"General content creator\";\n  for (const category of contentCategories) {\n    if (category.keywords.some(keyword => combinedText.includes(keyword))) {\n      contentStyle = category.name;\n      break;\n    }\n  }\n\n  // Create channel summary\n  const channelSummary = `This channel creates ${contentStyle.toLowerCase()} content. ${subscriberCount > 100000 ? 'It has a large following and' : ''} It produces regular videos for its audience.`;\n\n  // Calculate metrics for pain signal analysis\n  const avgViewsPerVideo = Math.round(viewCount / videoCount);\n  const engagementRatio = Math.round(viewCount / (subscriberCount || 1));\n\n  // Determine pain signal\n  let painSignal = \"\";\n  if (avgViewsPerVideo < 1000) {\n    painSignal = \"Low average views per video suggests need for better thumbnails, titles, and content packaging to improve CTR.\";\n  } else if (engagementRatio < 2) {\n    painSignal = \"Low engagement from subscribers indicates potential retention issues or content consistency problems.\";\n  } else if (videoCount > 100 && subscriberCount < 10000) {\n    painSignal = \"High video output with low subscriber growth suggests content quality or niche targeting issues.\";\n  } else if (subscriberCount > 100000 && avgViewsPerVideo < 10000) {\n    painSignal = \"Large audience base not translating to views indicates content refresh or format innovation needed.\";\n  } else if (videoCount < 10 && subscriberCount > 5000) {\n    painSignal = \"High initial traction but limited content library - needs consistent publishing to maintain growth.\";\n  } else {\n    painSignal = \"Opportunity to scale production quality and audience reach with professional video editing.\";\n  }\n\n  return {\n    json: {\n      contentStyle,\n      channelSummary,\n      painSignal\n    }\n  };\n});\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        720
+      ],
+      "id": "965d8950-c767-4d05-ac77-adb2caedccdb",
+      "name": "Study Style, Pain1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a0eb2de7-2365-4963-915b-63d69d2e8421",
+              "leftValue": "={{ $('Read Target_List').all().map(row => row.json.Email).includes($json.emails) }}",
+              "rightValue": "=",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        800,
+        336
+      ],
+      "id": "e0341490-1fe7-4fda-b63a-7a80d79e26ad",
+      "name": "If not there already"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        2624,
+        704
+      ],
+      "id": "1fb6750b-9c66-47f1-8135-e1804d6d12fe",
+      "name": "Remove Duplicates1"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.Email }}",
+        "subject": "={{ $json.Subject }}",
+        "emailType": "text",
+        "message": "={{ $json.Full_Prompts }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2848,
+        704
+      ],
+      "id": "225b6f1b-be83-4062-9f88-75a696f2ba17",
+      "name": "Send Emails",
+      "webhookId": "ecf3b4ae-ac25-4eee-b51d-8b4bf042cf73",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VavL5YZFNkkKpzfO",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y",
+          "mode": "list",
+          "cachedResultName": "Control_Panel",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 2090281338,
+          "mode": "list",
+          "cachedResultName": "Prompt_Packs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1_XCCM-RCLEZBnpG7kPhxIUACt2xNDgi0CUBFH2nER4Y/edit#gid=2090281338"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2416,
+        704
+      ],
+      "id": "be70140d-bb28-4a92-84a9-8485eb23ccf1",
+      "name": "Read Prompt_Packs again",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "TsbRVYCFuStfVBtn",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read Prompt_Packs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Target_List": {
+      "main": [
+        [
+          {
+            "node": "Target_List Rows Alligned",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Prompt_Packs": {
+      "main": [
+        [
+          {
+            "node": "Read Target_List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract ID Title Description": {
+      "main": [
+        [
+          {
+            "node": "Study Style, Pain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Email Writer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Writer": {
+      "main": [
+        [
+          {
+            "node": "Intro Subject Outro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return Content-Style, Pain-Signal": {
+      "main": [
+        [
+          {
+            "node": "Email Writer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intro Subject Outro": {
+      "main": [
+        [
+          {
+            "node": "Compile Intro Outro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compile Intro Outro": {
+      "main": [
+        [
+          {
+            "node": "Update rows in Prompt_Packs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Eyes Scraper": {
+      "main": [
+        [
+          {
+            "node": "Extract ChannelId, Title, Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Full Details": {
+      "main": [
+        [
+          {
+            "node": "Extract Email,Site, Social, LeadID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Eyes Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract ChannelId, Title, Description": {
+      "main": [
+        [
+          {
+            "node": "Get Full Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If email exists": {
+      "main": [
+        [
+          {
+            "node": "If not there already",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append direct emails in sheet": {
+      "main": [
+        [
+          {
+            "node": "Create information for PropmtPacks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email,Site, Social, LeadID": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create information for PropmtPacks": {
+      "main": [
+        [
+          {
+            "node": "Get Channel Stats (Count etc)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Channel Stats (Count etc)": {
+      "main": [
+        [
+          {
+            "node": "Extract ID Title Description",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - num items": {
+      "main": [
+        [
+          {
+            "node": "Read Prompt_Packs again",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Target_List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row in sheet1": {
+      "main": [
+        [
+          {
+            "node": "If - num items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Target_List Rows Alligned": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in Prompt_Packs": {
+      "main": [
+        [
+          {
+            "node": "Update rows in Prompt_Packs1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update rows in Prompt_Packs1": {
+      "main": [
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "If email exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Study Style, Pain1": {
+      "main": [
+        [
+          {
+            "node": "Return Content-Style, Pain-Signal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If not there already": {
+      "main": [
+        [
+          {
+            "node": "Append direct emails in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "Send Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Emails": {
+      "main": [
+        []
+      ]
+    },
+    "Read Prompt_Packs again": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "d7d497aa-33e5-4fe7-a38d-391dda5f691f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "17f0ad0c2204bab56ae460e6fe58a2256dcb0312008d619b43922404b6fcd5fb"
+  },
+  "id": "xc1DNLnQIf1qZWKniJv4s",
+  "tags": []
+}
