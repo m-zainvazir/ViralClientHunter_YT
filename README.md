@@ -2,8 +2,12 @@
 
 An end-to-end **AI-powered lead generation automation** built with **n8n** that discovers prospects from **YouTube & LinkedIn**, enriches their data, and sends **100+ hyper‑personalized outreach emails automatically**, all tracked inside a **license-protected Google Sheets dashboard**.
 
+Watch the demo video below: 
+https://youtu.be/UoEWuEjOE2c
 
 <img src="media/ViralClient Hunter (Youtube) v3.jpg" alt="Code-Crush-without-side" border="0">
+<video src="media/n8n_final_mzv .mp4" autoplay loop muted width="100%" border="0"></video>
+<video src="media/n8n_final_mzv .mp4" controls width="100%" border="0"></video>
 
 ---
 
